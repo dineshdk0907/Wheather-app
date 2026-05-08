@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Weather App</title>
+
+<style>
+
+/* ---------- BODY ---------- */
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, #4f46e5, #06b6d4);
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- SUN ---------- */
+.sun {
+  position: absolute;
+  top: 60px;
+  right: 80px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7b0, #ffd700);
+  box-shadow:
+    0 0 60px rgba(255,215,0,0.8),
+    0 0 120px rgba(255,215,0,0.4);
+  animation: sunPulse 4s infinite ease-in-out;
+}
+
+@keyframes sunPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ---------- CONTAINER ---------- */
+.container {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  padding: 30px;
+  border-radius: 15px;
+  width: 350px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  position: relative;
+  z-index: 10;
+}
+
+input {
+  width: 70%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+button {
+  padding: 10px 15px;
+  border: none;
+  background: #4338ca;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+button:hover {
+  background: #312e81;
+}
+
+.weather-card {
+  margin-top: 25px;
+  padding: 15px;
+  border-radius: 10px;
+  background: #f5f7ff;
+}
+
+/* ---------- CLOUD SYSTEM ---------- */
+.clouds {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* base cloud */
+.cloud {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.75;
+  filter: blur(4px);
+}
+
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+}
+
+/* sizes */
+.small { width: 120px; height: 40px; }
+.medium { width: 200px; height: 60px; }
+.large { width: 280px; height: 80px; }
+
+/* shapes */
+.cloud::before {
+  width: 60%;
+  height: 120%;
+  top: -50%;
+  left: 20%;
+}
+
+.cloud::after {
+  width: 70%;
+  height: 140%;
+  top: -60%;
+  left: 50%;
+}
+
+/* movement */
+@keyframes moveCloud {
+  from { transform: translateX(-300px); }
+  to { transform: translateX(120vw); }
+}
+
+/* far clouds (background layer) */
+.far {
+  opacity: 0.4;
+  filter: blur(6px);
+}
+
+/* near clouds (foreground layer) */
+.near {
+  opacity: 0.85;
+}
+
+/* loading text */
+.loading {
+  color: gray;
+  margin-top: 10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- SUN -->
+<div class="sun"></div>
+
+<!-- CLOUD BACKGROUND -->
+<div class="clouds">
+
+  <!-- FAR CLOUDS (depth layer) -->
+  <div class="cloud small far" style="top:5%; animation:moveCloud 30s linear infinite;"></div>
+  <div class="cloud medium far" style="top:12%; animation:moveCloud 60s linear infinite;"></div>
+  <div class="cloud large far" style="top:20%; animation:moveCloud 70s linear infinite;"></div>
+  <div class="cloud small far" style="top:35%; animation:moveCloud 60s linear infinite;"></div>
+  <div class="cloud medium far" style="top:50%; animation:moveCloud 50s linear infinite;"></div>
+  <div class="cloud large far" style="top:70%; animation:moveCloud 70s linear infinite;"></div>
+
+  <!-- NEAR CLOUDS -->
+  <div class="cloud small near" style="top:15%; animation:moveCloud 20s linear infinite;"></div>
+  <div class="cloud medium near" style="top:25%; animation:moveCloud 30s linear infinite;"></div>
+  <div class="cloud large near" style="top:40%; animation:moveCloud 50s linear infinite;"></div>
+  <div class="cloud small near" style="top:55%; animation:moveCloud 45s linear infinite;"></div>
+  <div class="cloud medium near" style="top:65%; animation:moveCloud 35s linear infinite;"></div>
+  <div class="cloud large near" style="top:80%; animation:moveCloud 25s linear infinite;"></div>
+
+</div>
+
+<!-- WEATHER APP -->
+<div class="container">
+  <h2>🌤 Weather App</h2>
+
+  <input type="text" id="city" placeholder="Enter city name" />
+  <button onclick="getWeather()">Search</button>
+
+  <div id="result"></div>
+</div>
+
+<script>
+async function getWeather() {
+  const city = document.getElementById("city").value.trim();
+  const result = document.getElementById("result");
+
+  if (!city) {
+    result.innerHTML = "⚠ Please enter city name";
+    return;
+  }
+
+  result.innerHTML = "<p class='loading'>Loading...</p>";
+
+  try {
+    // get coordinates
+    const geoRes = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${city}`
+    );
+    const geoData = await geoRes.json();
+
+    if (!geoData.results) {
+      result.innerHTML = "❌ City not found";
+      return;
+    }
+
+    const { latitude, longitude, name, country } = geoData.results[0];
+
+    // get weather
+    const weatherRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
+    );
+
+    const weatherData = await weatherRes.json();
+    const weather = weatherData.current_weather;
+
+    result.innerHTML = `
+      <div class="weather-card">
+        <h3>${name}, ${country}</h3>
+        <p>🌡 Temperature: <b>${weather.temperature}°C</b></p>
+        <p>💨 Wind Speed: <b>${weather.windspeed} km/h</b></p>
+        <p>🌦 Weather Code: <b>${weather.weathercode}</b></p>
+      </div>
+    `;
+  } catch (error) {
+    result.innerHTML = "❌ Error loading weather data";
+  }
+}
+</script>
+
+</body>
+</html>
